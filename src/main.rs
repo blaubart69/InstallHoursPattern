@@ -1,20 +1,28 @@
 use crate::installslot::InstallSlot;
+use std::num::ParseIntError;
 
 mod installslot;
 
 const WEEK_BYTE_LEN : usize = 24*7/8;
 
 fn main() {
-    let mut pattern : Vec<u8> = vec![0; WEEK_BYTE_LEN];
-    pattern[0] = 0x80;
-    let dayoffset_byte = 24 / 8;
-    pattern[ dayoffset_byte * 1] = 0xF0;
+
+    let inst_hours_pattern : Vec<u8> = vec![
+    //              111111    11112222
+    //01234567    89012345    67890123
+    0b00000000, 0b00000000, 0b00000000,
+    0b00000000, 0b00000000, 0b00001111,
+    0b11110000, 0b00000000, 0b00000000,
+    0b00000000, 0b00000000, 0b00000000,
+    0b00000000, 0b00000000, 0b00000000,
+    0b00000000, 0b00000000, 0b00000000,
+    0b00000000, 0b00000000, 0b00000000];
 
     let printOneSlot = | slot:&InstallSlot| {
         println!("{}", slot.to_string());
     };
 
-    installslot::from_hex_to_install_slots(&pattern, printOneSlot);
+    installslot::from_hex_to_install_slots(&inst_hours_pattern, printOneSlot);
 
 }
 

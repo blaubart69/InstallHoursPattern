@@ -38,7 +38,7 @@ impl InstallSlot {
 
     pub fn to_string(&self) -> String {
         format!(
-            "from {} {} to {} {}",
+            "from {:<10} {} to {:<10} {}",
             get_weekday_from_hour_idx(self.hour_idx_from),
             get_hour_within_day_from_hour_idx(self.hour_idx_from),
             get_weekday_from_hour_idx(self.hour_idx_to),
@@ -55,15 +55,15 @@ pub fn print_slots(slots: &Vec<InstallSlot>) {
 
 pub fn from_hex_to_install_slots<F>(
     bitfield_week: &Vec<u8>,
-    on_install_slot: F) where F : Fn(&InstallSlot) {
+    mut on_install_slot: F) where F : FnMut(&InstallSlot) {
 
     let mut start_hour_week_idx: Option<u8> = None;
     let mut hours_idx: u8 = 0;
-    let mut slot: InstallSlot;
+    let mut slot = InstallSlot::create(0,0);
 
     for byte_8_hours in bitfield_week {
         for i in 0..8 {
-            let installation_enabled: bool = ( (0x80 >> i) & *byte_8_hours ) > 1;
+            let installation_enabled: bool = ( (0x80 >> i) & *byte_8_hours ) != 0;
 
             match start_hour_week_idx {
                 None => {
@@ -72,9 +72,11 @@ pub fn from_hex_to_install_slots<F>(
                     }
                 }
                 Some(start_idx) => {
-                    if ! installation_enabled {
+                    if installation_enabled == false {
                         slot.hour_idx_from = start_idx;
                         slot.hour_idx_to = hours_idx;
+                        on_install_slot(&slot);
+                        start_hour_week_idx = None;
                     }
                 }
             }
@@ -94,18 +96,18 @@ mod tests {
 
         let mut result: Vec<InstallSlot> = vec![];
 
-        from_hex_to_install_slots(
-            pattern,
-            |slot| {
-                result.push(slot.clone());
-            });
+        let mut store_slot = |slot:&InstallSlot| {
+            result.push(slot.clone());
+        };
+
+        from_hex_to_install_slots(pattern,store_slot);
 
         result
     }
 
     #[test]
     fn no_install_slots() {
-        let mut pattern: Vec<u8> = vec![0; WEEK_BYTE_LEN];
+        let pattern: Vec<u8> = vec![0; WEEK_BYTE_LEN];
         let expected: Vec<InstallSlot> = vec![];
         assert_eq!(expected, get_slots(&pattern));
     }
